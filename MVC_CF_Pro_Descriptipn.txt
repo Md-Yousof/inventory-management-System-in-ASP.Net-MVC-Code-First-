@@ -1,4 +1,4 @@
-Project Name	     : inventory management System
+	Project Name	     : inventory management System
 	Project type	     : ASP.Net MVC Code First
 	Technology Used	     : Asp.net MVC Code First, HTML5, Bootstrap, SQL Server,
 	Programming Language : C#
