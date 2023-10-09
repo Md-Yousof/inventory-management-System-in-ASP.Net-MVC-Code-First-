@@ -1,0 +1,12 @@
+
+In "Inventory Control System with ASP.NET MVC," I led the development of a robust inventory management tool using a Database First approach. Integrated key features such as real-time email alerts, relational functionalities, AJAX partial views, and modal pop-ups for enhanced user experience. Demonstrated expertise in model creation, efficient database connections via Entity Framework, and seamless UI with Bootstrap and JavaScript. A testament to my skills in software architecture, database integration, and building user-friendly web applications.
+
+
+
+
+
+ASP.Net MVC Code First Project: Hospital Management System
+inventory management System where I used Code First Approach MVC to manage this Application. I have used all the technique to Manage inventory system. Crud Operation with master Details using Model, View Model, Ajax, Partial view Modal pop up.
+Technology Used: Asp.net MVC Code First, HTML5, Bootstrap, SQL Server,
+Programming Language: C#
+Project Link:
