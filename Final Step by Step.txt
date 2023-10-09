@@ -1,0 +1,994 @@
+
+1. Create Project Name: Exam_7
+
+>>>>>> Select Empty > tick on MVC > tick off https > No Authentication
+
+
+>>>>>>>Rebuild
+===============================================
+2. Create Model Class >>>>
+
+
+Category
+================================================
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Web;
+
+namespace Exam_7.Models
+{
+    public class Category
+    {
+        [Key]
+        public int CategoryID { get; set; }
+        public string CategoryName { get; set; }
+    }
+}
+
+Product
+===============================================
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Web;
+
+namespace Exam_7.Models
+{
+    public class Product
+    {
+        public int ProductID { get; set; }
+        [StringLength(50, MinimumLength = 1)]
+        public string ProductName { get; set; }
+        public int CategoryID { get; set; }
+    }
+}
+
+
+OrderMaster
+===============================================
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Web;
+
+namespace Exam_7.Models
+{
+    public class OrderMaster
+    {
+        [Key]
+        public int OrderID { get; set; }
+        public string OrderNo { get; set; }
+
+        public DateTime OrderDate { get; set; }
+
+        public string Description { get; set; }
+
+        public string AddressProofImage { get; set; }
+
+        public Nullable<bool> Terms { get; set; }
+
+        public virtual ICollection<OrderDetail> OrderDetails { get; set; }
+
+    }
+}
+
+OrderDetail
+===============================================
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Web;
+
+namespace Exam_7.Models
+{
+    public class OrderDetail
+    {
+        [Key]
+        public int OrderDetailID { get; set; }
+        public int ProductID { get; set; }
+        public int OrderID { get; set; }
+        public OrderMaster OrderMaster { get; set; }
+
+        public int Quantity { get; set; }
+
+        public decimal Rate { get; set; }
+    }
+}
+
+
+>>>>>>>Rebuild
+===============================================
+
+3.Write click Models folder > Create Folder: ViewModels > Create Class OrderVM. 
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Web;
+
+namespace Exam_7.Models.ViewModels
+{
+    public class OrderVM
+    {
+        public int OrderDetailID { get; set; }
+        public int ProductID { get; set; }
+        public int OrderID { get; set; }
+
+        public int Quantity { get; set; }
+        [Required]
+        public decimal Rate { get; set; }
+        [Required]
+        public string OrderNo { get; set; }
+        [DataType(DataType.Date)]
+        [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd}", ApplyFormatInEditMode = true)]
+        public DateTime OrderDate { get; set; }
+
+        [StringLength(50)]
+        public string Description { get; set; }
+
+        public string AddressProofImage { get; set; }
+
+        public Nullable<bool> Terms { get; set; }
+    }
+}
+
+
+>>>>>>>Rebuild
+===============================================
+
+4. Tools >  NuGet packege > Install-Package EntityFramework 
+
+
+>>>>>>>Rebuild
+===============================================
+
+5. Create Folder in Project file name: DAL > Create Context class : OrderContext
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Data.Entity;
+using Exam_7.Models;
+
+namespace Exam_7.DAL
+{
+    public class OrderContext : DbContext
+    {
+        public OrderContext() : base("Exam_DB")
+        {
+
+        }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<Product> Products { get; set; }
+        public DbSet<OrderMaster> OrderMasters { get; set; }
+        public DbSet<OrderDetail> OrderDetails { get; set; }
+
+        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            Configuration.ProxyCreationEnabled = false;
+        }
+
+    }
+}
+  
+
+===============================================
+
+6. Web.config > add connection string Above the ..........<appSettings>
+
+	<connectionStrings>
+		<add name="Exam_DB" connectionString="Data Source=(LocalDb)\mssqllocaldb; Initial Catalog=Exam_DB02; Integrated Security=SSPI;" providerName="System.Data.SqlClient" />
+	</connectionStrings>
+
+
+===============================================
+
+7. Tools >  NuGet packege commend>: enable-migrations
+
+8. Tools >  NuGet packege commend>: add-migration InitialCreate
+
+
+=======================================================
+
+10. Tools >  NuGet packege commend>: update-databasea
+
+
+>>>>>>>Rebuild
+===============================================
+11. Add Data in Product and Category Table
+
+==================================================
+
+12. Create Controller name: OrderController 
+
+using Exam_7.DAL;
+using Exam_7.Models.ViewModels;
+using Exam_7.Models;
+using System;
+using System.Collections.Generic;
+using System.Data.Entity;
+using System.IO;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+
+namespace Exam_7.Controllers
+{
+    public class OrderController : Controller
+    {
+        public OrderContext db = new OrderContext();
+
+
+        // GET: Order
+        public ActionResult Index()
+        {
+            return View();
+        }
+
+        public JsonResult getProductCategories()
+        {
+            List<Category> categories = new List<Category>();
+            categories = db.Categories.OrderBy(a => a.CategoryName).ToList();
+
+            return new JsonResult { Data = categories, JsonRequestBehavior = JsonRequestBehavior.AllowGet };
+
+        }
+
+        public JsonResult getProducts(int categoryID)
+        {
+            List<Product> products = new List<Product>();
+
+            products = db.Products.Where(a => a.CategoryID.Equals(categoryID)).OrderBy(a => a.ProductName).ToList();
+
+            return new JsonResult { Data = products, JsonRequestBehavior = JsonRequestBehavior.AllowGet };
+        }
+
+        [HttpPost]
+        public JsonResult save(OrderMaster order, HttpPostedFileBase file)
+        {
+            bool status = false;
+
+            if (file != null)
+            {
+                string folderPath = Server.MapPath("~/Images/");
+                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+                string filePath = Path.Combine(folderPath, fileName);
+                file.SaveAs(filePath);
+
+                order.AddressProofImage = fileName;
+            }
+
+            var isValidModel = TryUpdateModel(order);
+
+            if (isValidModel)
+            {
+                db.OrderMasters.Add(order);
+                db.SaveChanges();
+                status = true;
+            }
+
+            return new JsonResult { Data = new { status = status } };
+        }
+
+
+
+        [HttpGet]
+        public ActionResult Edit(int id)
+        {
+            OrderMaster orderMaster = db.OrderMasters.Include(o => o.OrderDetails).SingleOrDefault(o => o.OrderID == id);
+            if (orderMaster == null)
+            {
+                return HttpNotFound();
+            }
+
+            return View(orderMaster);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Edit(OrderMaster orderMaster, HttpPostedFileBase file)
+        {
+            if (ModelState.IsValid)
+            {
+                if (file != null && file.ContentLength > 0)
+                {
+                    string folderPath = Server.MapPath("~/Images/");
+                    string fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+                    string filePath = Path.Combine(folderPath, fileName);
+                    file.SaveAs(filePath);
+
+                    orderMaster.AddressProofImage = filePath;
+                }
+
+                db.Entry(orderMaster).State = EntityState.Modified;
+                db.SaveChanges();
+                return RedirectToAction("List");
+            }
+
+            return View(orderMaster);
+        }
+
+
+
+        [Route("Details")]
+        public ActionResult List()
+        {
+
+            var orderDetails = db.OrderDetails.Include("OrderMaster").ToList();
+
+
+            var orderVMs = orderDetails.Select(o => new OrderVM
+            {
+                OrderDetailID = o.OrderDetailID,
+                ProductID = o.ProductID,
+                OrderID = o.OrderID,
+                Quantity = o.Quantity,
+                Rate = o.Rate,
+                OrderDate = o.OrderMaster.OrderDate,
+                Description = o.OrderMaster.Description,
+                AddressProofImage = o.OrderMaster.AddressProofImage,
+                Terms = o.OrderMaster.Terms
+            }).ToList();
+
+            return View(orderVMs);
+        }
+
+
+        public ActionResult Delete(int id)
+        {
+            OrderMaster orderMaster = db.OrderMasters.Find(id);
+            if (orderMaster == null)
+            {
+                return HttpNotFound();
+            }
+
+            return View(orderMaster);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Delete(int? id)
+        {
+            OrderMaster orderMaster = db.OrderMasters.Find(id);
+            if (orderMaster == null)
+            {
+                return HttpNotFound();
+            }
+
+            db.OrderMasters.Remove(orderMaster);
+            db.SaveChanges();
+
+            return RedirectToAction("List");
+        }
+
+    }
+}
+
+
+>>>>>>>Rebuild
+
+
+=========================================================
+
+13. Right click> create View Index : (Empty without model)
+
+
+@{
+    ViewBag.Title = "Index";
+}
+
+<h2>Index</h2>
+
+
+@{
+    ViewBag.Title = "Create Order";
+}
+
+<h2>Order Your product</h2>
+<div class="container">
+    <div class="master">
+        <h2>Order</h2>
+        <table class="table table-responsive">
+            <tr>
+                <td>Order Date</td>
+                <td>
+                    <input type="date" id="orderDate" class="form-control" />
+                    <span class="error">Valid order date required (ex: MM-dd-yyyy)</span>
+                </td>
+
+                <td>Description</td>
+                <td>
+                    <textarea id="description" class="form-control"></textarea>
+                </td>
+
+            </tr>
+            <tr>
+                <td>Upload Adress Proof Image</td>
+                <td>
+                    <input type="file" name="ImageFile" id="imageupload" class="form-control" />
+                </td>
+
+                <td>If you Agree The Terms, Check this box!</td>
+                <td>
+                    <input id="bool" type="checkbox" class="form-control">
+                </td>
+            </tr>
+
+        </table>
+    </div>
+    <div class="details">
+        <h2>
+            Order items
+        </h2>
+        <table class="table table-responsive">
+            <tr>
+                <td>Category</td>
+                <td>Product</td>
+                <td>Quantity</td>
+                <td>Rate</td>
+                <td>&nbsp;</td>
+            </tr>
+            <tr class="mycontainer" id="mainrow">
+                <td>
+                    <select id="productCategory" class="pc form-control" onchange="LoadProduct(this)">
+                        <option>Select</option>
+                    </select>
+                    <span class="error">Select Category</span>
+                </td>
+                <td>
+                    <select id="product" class="product form-control">
+                        <option>Select</option>
+                    </select>
+                    <span class="error">Select product</span>
+                </td>
+                <td>
+                    <input type="text" id="quantity" class="quantity form-control" />
+                    <span class="error">Valid quantity required</span>
+                </td>
+                <td>
+                    <input type="text" id="rate" class="rate form-control" />
+                    <span class="error">Valid rate required</span>
+                </td>
+                <td>
+                    <input type="button" id="add" value="add" style="width:80px" class="btn btn-success" />
+                </td>
+            </tr>
+        </table>
+        <div id="orderItems">
+            @Html.Partial("_PartialPage1")
+        </div>
+        <div style="padding:10px 0; text-align:right">
+            <input id="submit" type="button" value="Save Order" class="btn btn-warning" style="padding:10px 20px" />
+
+        </div>
+    </div>
+</div>
+<div>
+    @*   <a href="@Url.RouteUrl("List")">Back To List</a>*@
+    @Html.ActionLink("Back to List", "List")
+</div>
+<link href="~/Content/bootstrap.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" />
+<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+<script src="~/Scripts/my_Scripts.js"></script>
+
+
+<script src="~/Scripts/ImageScript.js"></script>
+
+<style>
+    span.error {
+        display: block;
+        visibility: hidden;
+        color: red;
+        font-size: 90%;
+    }
+
+    tr.error {
+        background-color: rgba(255,0,0,0.35);
+    }
+</style>
+
+
+===================================================================
+14.Right click> create View Edit : (Empty without model)
+
+@model Exam_7.Models.OrderMaster
+
+@{
+    ViewBag.Title = "Edit";
+}
+
+<h2>Edit</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal">
+        <h4>OrderMaster</h4>
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        @Html.HiddenFor(model => model.OrderID)
+
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.OrderDate, htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.OrderDate, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.OrderDate, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.Description, htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.Description, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.Description, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.AddressProofImage, htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.AddressProofImage, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.AddressProofImage, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.Terms, htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                <div class="checkbox">
+                    @Html.EditorFor(model => model.Terms)
+                    @Html.ValidationMessageFor(model => model.Terms, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+
+        @foreach (var item in Model.OrderDetails)
+        {
+            <div class="form-group">
+                @Html.LabelFor(model => item.Quantity, htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    <div class="checkbox">
+                        @Html.EditorFor(model => item.Quantity)
+                        @Html.ValidationMessageFor(model => item.Quantity, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                @Html.LabelFor(model => item.Rate, htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    <div class="checkbox">
+                        @Html.EditorFor(model => item.Rate)
+                        @Html.ValidationMessageFor(model => item.Rate, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" value="Save" class="btn btn-default" />
+            </div>
+        </div>
+    </div>
+}
+
+<div class="navbar-btn">
+    @Html.ActionLink("Back to List", "List")
+</div>
+
+
+==================================================================
+15.Right click> Create View List : (Empty without model)
+
+
+@model List<Exam_7.Models.ViewModels.OrderVM>
+
+@{
+    ViewBag.Title = "List";
+}
+
+@Html.ActionLink("Create new Order", "Index")
+
+<h2>List</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Order ID</th>
+            <th>Product ID</th>
+            <th>Quantity</th>
+            <th>Rate</th>
+            <th>Order Date</th>
+            <th>Description</th>
+            <th>Address Proof Image</th>
+            <th>Terms</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+
+        @foreach (var order in Model)
+        {
+            <tr>
+                <td>@order.OrderID</td>
+                <td>@order.ProductID</td>
+                <td>@order.Quantity</td>
+                <td>@order.Rate</td>
+                <td>@order.OrderDate.ToString("yyyy-MM-dd")</td>
+                <td>@order.Description</td>
+                <td><img src=@order.AddressProofImage height="80" width="80" /></td>
+                <td>@order.Terms</td>
+                <td>
+                    @Html.ActionLink("Edit", "Edit", new { id = order.OrderID }) |
+                    @Html.ActionLink("Delete", "Delete", new { id = order.OrderID })
+                </td>
+            </tr>
+        }
+
+    </tbody>
+</table>
+
+
+
+===============================================================
+
+16.Right click> Create View Delete : (Empty without model)
+
+@model Exam_7.Models.OrderMaster
+
+@{
+    ViewBag.Title = "Delete";
+}
+
+<h2>Delete</h2>
+
+<h3>Are you sure you want to delete this?</h3>
+<div>
+    <h4>OrderMaster</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.OrderNo)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.OrderNo)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.OrderDate)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.OrderDate)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.Description)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.Description)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.AddressProofImage)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.AddressProofImage)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.Terms)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.Terms)
+        </dd>
+
+    </dl>
+
+    @using (Html.BeginForm()) {
+        @Html.AntiForgeryToken()
+
+        <div class="form-actions no-color">
+            <input type="submit" value="Delete" class="btn btn-default" /> |
+            @Html.ActionLink("Back to List", "Index")
+        </div>
+    }
+</div>
+
+
+========================================================
+
+17. Right click on project file> click NuGet Packege>  install or Update bottstrap version: 3.3.6
+
+=====================================================
+
+18. View > Right click on Share folder > Create MVC 5 Partial page (Rezor) (don't change the file name) add the below code
+
+
+<table class="table table-responsive" id="orderdetailsItems"></table>
+<span id="orderItemError" style="color:red"></span>
+
+
+=================================================================
+19. _Layout page add Jquary virsion (in Head section):  
+
+<link href="~/Content/Site.css" rel="stylesheet" type="text/css" />
+<link href="~/Content/bootstrap.min.css" rel="stylesheet" type="text/css" />
+
+<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+
+====================================================================
+
+20. Write click on Script Folder > Create a JavaScript file : my_Scripts.js
+
+
+var Categories = []
+
+function LoadCategory(element) {
+    if (Categories.length == 0) {
+
+        $.ajax({
+            type: "GET",
+            url: '/Order/getProductCategories',
+            success: function (data) {
+                Categories = data;
+
+                renderCategory(element);
+            }
+        })
+    }
+    else {
+
+        renderCategory(element);
+    }
+}
+
+function renderCategory(element) {
+    var $ele = $(element);
+    $ele.empty();
+    $ele.append($('<option/>').val('0').text('Select'));
+    $.each(Categories, function (i, val) {
+        $ele.append($('<option/>').val(val.CategoryID).text(val.CategoryName));
+    })
+}
+
+
+function LoadProduct(categoryDD) {
+    $.ajax({
+        type: "GET",
+        url: "/Order/getProducts",
+        data: { 'categoryID': $(categoryDD).val() },
+        success: function (data) {
+
+            renderProduct($(categoryDD).parents('.mycontainer').find('select.product'), data);
+        },
+        error: function (error) {
+            console.log(error);
+        }
+    })
+}
+
+function renderProduct(element, data) {
+
+    var $ele = $(element);
+    $ele.empty();
+    $ele.append($('<option/>').val('0').text('Select'));
+    $.each(data, function (i, val) {
+        $ele.append($('<option/>').val(val.ProductID).text(val.ProductName));
+    })
+}
+
+$(document).ready(function () {
+
+    $('#add').click(function () {
+
+        var isAllValid = true;
+        if ($('#productCategory').val() == "0") {
+            isAllValid = false;
+            $('#productCategory').siblings('span.error').css('visibility', 'visible');
+        }
+        else {
+            $('#productCategory').siblings('span.error').css('visibility', 'hidden');
+        }
+
+        if ($('#product').val() == "0") {
+            isAllValid = false;
+            $('#product').siblings('span.error').css('visibility', 'visible');
+        }
+        else {
+            $('#product').siblings('span.error').css('visibility', 'hidden');
+        }
+
+        if (!($('#quantity').val().trim() != '' && (parseInt($('#quantity').val()) || 0))) {
+            isAllValid = false;
+            $('#quantity').siblings('span.error').css('visibility', 'visible');
+        }
+        else {
+            $('#quantity').siblings('span.error').css('visibility', 'hidden');
+        }
+
+        if (!($('#rate').val().trim() != '' && !isNaN($('#rate').val().trim()))) {
+            isAllValid = false;
+            $('#rate').siblings('span.error').css('visibility', 'visible');
+        }
+        else {
+            $('#rate').siblings('span.error').css('visibility', 'hidden');
+        }
+
+        if (isAllValid) {
+            var $newRow = $('#mainrow').clone().removeAttr('id');
+            $('.pc', $newRow).val($('#productCategory').val());
+            $('.product', $newRow).val($('#product').val());
+
+
+            $('#add', $newRow).addClass('remove').val('Remove').removeClass('btn-success').addClass('btn-danger');
+
+
+            $('#productCategory,#product,#quantity,#rate,#add', $newRow).removeAttr('id');
+            $('span.error', $newRow).remove();
+
+            $('#orderdetailsItems').append($newRow);
+
+
+            $('#productCategory,#product').val('0');
+            $('#quantity,#rate').val('');
+            $('#orderItemError').empty();
+        }
+
+    })
+
+
+    $('#orderdetailsItems').on('click', '.remove', function () {
+        $(this).parents('tr').remove();
+    });
+
+    $('#submit').click(function () {
+        var isAllValid = true;
+
+
+        $('#orderItemError').text('');
+        var list = [];
+        var errorItemCount = 0;
+        $('#orderdetailsItems tbody tr').each(function (index, ele) {
+            if (
+                $('select.product', this).val() == "0" ||
+                (parseInt($('.quantity', this).val()) || 0) == 0 ||
+                $('.rate', this).val() == "" ||
+                isNaN($('.rate', this).val())
+            ) {
+                errorItemCount++;
+                $(this).addClass('error');
+            } else {
+                var orderItem = {
+                    ProductID: $('select.product', this).val(),
+                    Quantity: parseInt($('.quantity', this).val()),
+                    Rate: parseFloat($('.rate', this).val())
+                }
+                list.push(orderItem);
+            }
+        })
+
+        if (errorItemCount > 0) {
+            $('#orderItemError').text(errorItemCount + " invalid entry in order item list.");
+            isAllValid = false;
+        }
+
+        if (list.length == 0) {
+            $('#orderItemError').text('At least 1 order item required.');
+            isAllValid = false;
+        }
+
+
+        if ($('#orderDate').val().trim() == '') {
+            $('#orderDate').siblings('span.error').css('visibility', 'visible');
+            isAllValid = false;
+        }
+        else {
+            $('#orderDate').siblings('span.error').css('visibility', 'hidden');
+        }
+
+        if (isAllValid) {
+            var data = {
+                OrderDate: $('#orderDate').val().trim(),
+                Description: $('#description').val().trim(),
+                AddressProofImage: $('#imageupload').val().trim(),
+                Terms: $('#bool').is(":checked"),
+                OrderDetails: list
+            }
+
+            $(this).val('Please wait...');
+
+            $.ajax({
+                type: 'POST',
+                url: '/Order/save',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                success: function (data) {
+                    if (data.status) {
+                        alert('Successfully saved');
+                        list = [];
+                        $('#orderDate,#description,#imageupload, #bool',).val('');
+                        $('#orderdetailsItems').empty();
+
+                        window.location = '/Order/List';
+
+                    }
+                    else {
+                        alert('Error');
+                    }
+                    $('#submit').val('Save');
+                },
+                error: function (error) {
+                    console.log(error);
+                    $('#submit').val('Save');
+                }
+            });
+        }
+
+    });
+
+});
+
+LoadCategory($('#productCategory'));
+
+
+===============================================================
+22. Write click on script folder > create a JavaScript file name : ImageScript
+
+$(document).ready(function () {
+
+    // New code to handle image upload
+    $('#submit').click(function () {
+
+
+        var formData = new FormData();
+        formData.append('file', $('#imageupload')[0].files[0]);
+
+        $.ajax({
+            type: 'POST',
+            url: '/Order/save',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (data) {
+                // Existing success code
+                // ...
+            },
+            error: function (error) {
+                // Existing error code
+                // ...
+            }
+        });
+    });
+});
+
+
+
+
+23. App_start folder > RouteConfig.cs > Replace the following line
+
+defaults: new { controller = "Order", action = "Index", id = UrlParameter.Optional }
+
+==============================================================
+
+24. Run Program
+
+
+
+

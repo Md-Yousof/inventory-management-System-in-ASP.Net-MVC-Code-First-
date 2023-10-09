@@ -1,0 +1,46 @@
+﻿@model List<CodeFirst_01.Models.ViewModels.OrderVM>
+
+@{
+    ViewBag.Title = "List";
+}
+
+@Html.ActionLink("Create new Order", "Index")
+
+<h2>List</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Order ID</th>
+            <th>Product ID</th>
+            <th>Quantity</th>
+            <th>Rate</th>
+            <th>Order Date</th>
+            <th>Description</th>
+            <th>Address Proof Image</th>
+            <th>Terms</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+
+        @foreach (var order in Model)
+        {
+            <tr>
+                <td>@order.OrderID</td>
+                <td>@order.ProductID</td>
+                <td>@order.Quantity</td>
+                <td>@order.Rate</td>
+                <td>@order.OrderDate.ToString("yyyy-MM-dd")</td>
+                <td>@order.Description</td>
+                <td><img src=@order.AddressProofImage height="80" width="80" /></td>
+                <td>@order.Terms</td>
+                <td>
+                    @Html.ActionLink("Edit", "Edit", new { id = order.OrderID }) |
+                    @Html.ActionLink("Delete", "Delete", new { id = order.OrderID })
+                </td>
+            </tr>
+        }
+
+    </tbody>
+</table>

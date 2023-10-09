@@ -1,0 +1,116 @@
+﻿
+@{
+    ViewBag.Title = "Index";
+}
+
+<h2>Index</h2>
+
+
+@{
+    ViewBag.Title = "Create Order";
+}
+
+<h2>Order Your product</h2>
+<div class="container">
+    <div class="master">
+        <h2>Order</h2>
+        <table class="table table-responsive">
+            <tr>
+                <td>Order Date</td>
+                <td>
+                    <input type="date" id="orderDate" class="form-control" />
+                    <span class="error">Valid order date required (ex: MM-dd-yyyy)</span>
+                </td>
+
+                <td>Description</td>
+                <td>
+                    <textarea id="description" class="form-control"></textarea>
+                </td>
+
+            </tr>
+            <tr>
+                <td>Upload Adress Proof Image</td>
+                <td>
+                    <input type="file" name="ImageFile" id="imageupload" class="form-control" />
+                </td>
+
+                <td>If you Agree The Terms, Check this box!</td>
+                <td>
+                    <input id="bool" type="checkbox" class="form-control">
+                </td>
+            </tr>
+
+        </table>
+    </div>
+    <div class="details">
+        <h2>
+            Order items
+        </h2>
+        <table class="table table-responsive">
+            <tr>
+                <td>Category</td>
+                <td>Product</td>
+                <td>Quantity</td>
+                <td>Rate</td>
+                <td>&nbsp;</td>
+            </tr>
+            <tr class="mycontainer" id="mainrow">
+                <td>
+                    <select id="productCategory" class="pc form-control" onchange="LoadProduct(this)">
+                        <option>Select</option>
+                    </select>
+                    <span class="error">Select Category</span>
+                </td>
+                <td>
+                    <select id="product" class="product form-control">
+                        <option>Select</option>
+                    </select>
+                    <span class="error">Select product</span>
+                </td>
+                <td>
+                    <input type="text" id="quantity" class="quantity form-control" />
+                    <span class="error">Valid quantity required</span>
+                </td>
+                <td>
+                    <input type="text" id="rate" class="rate form-control" />
+                    <span class="error">Valid rate required</span>
+                </td>
+                <td>
+                    <input type="button" id="add" value="add" style="width:80px" class="btn btn-success" />
+                </td>
+            </tr>
+        </table>
+        <div id="orderItems">
+            @Html.Partial("_PartialPage1")
+        </div>
+        <div style="padding:10px 0; text-align:right">
+            <input id="submit" type="button" value="Save Order" class="btn btn-warning" style="padding:10px 20px" />
+
+        </div>
+    </div>
+</div>
+<div>
+    @*   <a href="@Url.RouteUrl("List")">Back To List</a>*@
+    @Html.ActionLink("Back to List", "List")
+</div>
+<link href="~/Content/bootstrap.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" />
+<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+<script src="~/Scripts/my_Scripts.js"></script>
+
+
+<script src="~/Scripts/ImageScript.js"></script>
+
+<style>
+    span.error {
+        display: block;
+        visibility: hidden;
+        color: red;
+        font-size: 90%;
+    }
+
+    tr.error {
+        background-color: rgba(255,0,0,0.35);
+    }
+</style>
+
